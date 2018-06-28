@@ -1,4 +1,5 @@
 #!/usr/bin/python
+#-*- coding: utf-8 -*-
 import os
 import xlrd
 import openpyxl
@@ -7,7 +8,8 @@ import datetime
 input_Folder = "/home/quocdai/Projects/input"
 output_Folder = "/home/quocdai/Projects/output"
 done_Folder = "/home/quocdai/Projects/done"
-
+teacher_Name = {'MTCNHUNG':'Mai Thị Cẩm Nhung','VHKHANH':'Võ Hồng Khanh','TCNGHI':'Trần Công Nghị','NVTTHAI':'Nguyễn Võ Thông Thái',\
+'MQDAI':'Mai Quốc Đại','VDANH':'Võ Duy Anh','LHHUONG':'Lương Hoàng Hướng'}
 
 #input_file = "/home/quocdai/Downloads/Overview.xls"
 teacher_original_file = "/home/quocdai/Downloads/GV.xlsx"
@@ -26,13 +28,28 @@ def count_GP(GP_column=0):
     #First sheet
     sheet = workbook_to_read.sheet_by_index(0) 
     
-    #Cell content value start at second row to near last row
+    #Get list of value in column
     col_value = sheet.col_values(GP_column, 1, sheet.nrows - 2) 
     
-    #Get list of cell value 
+    #Just get firest number in celvalue, Damn Thai! 
     col_value = [str(x)[0] for x in col_value]
     
+    
     return (col_value.count('4'),col_value.count('3'),col_value.count('2'),col_value.count('1'))
+
+def read_Remark():
+    workbook_to_read = xlrd.open_workbook(inputFile,on_demand=True)
+    
+    #First sheet
+    sheet = workbook_to_read.sheet_by_index(0) 
+    
+    
+    #Get list of value in column
+    list_Remark = sheet.col_values(26, 1, sheet.nrows - 2) 
+    list_Remark = [x for x in list_Remark if x != '--']
+    list_Remark = [x for x in list_Remark if x != 'Requires grading' ]
+    return list_Remark
+       
 
 def write_Teacher_GP(output_File):
     write_workbook = openpyxl.load_workbook(teacher_original_file)    
@@ -40,14 +57,22 @@ def write_Teacher_GP(output_File):
     sheet1 = write_workbook['sheet1']
     
     #Read and insert data to GP.
-    for record in range (0,12):
-        list_GP = count_GP(record+5) #GP teacher start from comlumn 5 to 16 in file
+    for record in range (0,11):
+        list_GP = count_GP(record+5) #GP teacher start from comlumn 5 to 15 in file
         for GP in range (0,4):
             sheet1[chr(ord('F')+GP)+str(17+record)] = list_GP[GP]
     
+    
+     #Write remark
+    if len(read_Remark()) != 0:
+        remark ="'"
+        for line in read_Remark():
+            remark = remark+"-"+line+"\n"
+        sheet1['B31'] = remark[0:-1]
+
         
     #Write basic class info
-    sheet1['B10'] = class_Info(inputFile)[4]
+    sheet1['B10'] = teacher_Name[class_Info(inputFile)[4]]
     sheet1['B11'] = class_Info(inputFile)[6][6:8]+"/"+class_Info(inputFile)[6][4:6]+"/"+class_Info(inputFile)[6][0:4]
     sheet1['G11'] = class_Info(inputFile)[1]
     sheet1['G10'] = class_Info(inputFile)[2]
@@ -68,10 +93,11 @@ def write_Service_GP(output_File):
 
     #Read and insert data to GP.
     for record in range (0,10):
-        list_GP = count_GP(record+17) #GP service Start from comlumn 17 to 27 in file
+        list_GP = count_GP(record+16) #GP service Start from comlumn 1 to 26 in file
         for GP in range (0,4):
             sheet1[chr(ord('F')+GP)+str(17+record)] = list_GP[GP]
     
+       
     #Write basic class info
     sheet1['B10'] = class_Info(inputFile)[6][6:8]+"/"+class_Info(inputFile)[6][4:6]+"/"+class_Info(inputFile)[6][0:4]
     sheet1['G11'] = class_Info(inputFile)[1]
@@ -86,21 +112,32 @@ def write_Service_GP(output_File):
     sheet1.add_image(img, 'A1')
     write_workbook.save(output_File)
 
+def write_Remark(output_File):
+    if len(read_Remark()) != 0:
+        remark_File = open(output_File,"w+")
+        for line in read_Remark():
+            remark_File.write("-"+line.encode('utf8')+"\n")
+        remark_File.close()
+
 #write_Teacher_GP()
 #write_Service_GP()
 
 def run():
     global inputFile
     for iFile in get_inputFile():
-        inputFile = input_Folder + "/" + iFile 
-        DV_output_File = output_Folder + "/" + iFile[0:-12] + "DV_" + iFile[-12:]
-        GV_output_File = output_Folder + "/" + iFile[0:-12] + "GV_" + iFile[-12:]
-        CM_output_File = output_Folder + "/" + iFile[0:-12] + "DV_" + iFile[-12:-3] + "txt"
+        inputFile = input_Folder + "/" + iFile
+        doneFile = done_Folder + "/" + iFile + ".done"
+        DV_output_File = output_Folder + "/" + iFile[0:-12] + "DV_" + iFile[-12:] + "x"
+        GV_output_File = output_Folder + "/" + iFile[0:-12] + "GV_" + iFile[-12:] + "x"
+        RM_output_File = output_Folder + "/" + iFile[0:-12] + "DV_" + iFile[-12:-3] + "txt"
         
         write_Service_GP(DV_output_File)
         write_Teacher_GP(GV_output_File)
-     
+        write_Remark(RM_output_File)
+        os.rename(inputFile,doneFile)
+             
 run()
+
 
 
 #    print "Date: "+class_Info(xfile)[6][6:8]+"/"+class_Info(xfile)[6][4:6]+"/"+class_Info(xfile)[6][0:4]
