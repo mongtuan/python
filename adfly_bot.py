@@ -9,7 +9,11 @@ from selenium.webdriver.support import expected_conditions as EC
 
 firef = webdriver.Firefox()
 firef.get('http://thacorag.com/2Lwk')
-element = WebDriverWait(firef, 20).until(
-EC.element_to_be_clickable((By.XPATH, "/html/body/div[6]/table/tbody/tr[1]/td/div/div[1]/span[2]/a/img")))
-
-element.click();
+element = WebDriverWait(firef, 20).until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[6]/table/tbody/tr[1]/td/div/div[1]/span[2]/a/img")))
+handles = firef.window_handles
+size = len(handles)
+print size
+element.click()
+firef.switch_to.window(handles[0])
+print firef.title
+firef.close()
